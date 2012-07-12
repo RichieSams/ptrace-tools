@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ $# -lt 1 ]; then
+   echo "pthread-trace (c)2012 QVXLabs LLC all rights reserved"
+   echo "syntax: pthread-trace <program to trace>"
+else
+   export LD_PRELOAD=libpthread-trace.so
+   $*
+fi
+	
+ 
