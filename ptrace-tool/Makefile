@@ -2,8 +2,9 @@ CC = gcc
 LD = ld
 RM = rm
 CP = cp
+STRIP = strip
 LDCONF = ldconfig
-CFLAGS = -Wall -fPIC -DPIC -g
+CFLAGS = -Wall -fPIC -DPIC
 
 .SUFFIXES: .c
 .PHONY: clean install
@@ -15,6 +16,7 @@ all: libpthread-trace.so
 
 libpthread-trace.so: pthread-trace.o tracetime.o log.o
 	$(LD) -shared -o $@ $^ -ldl -lrt
+	$(STRIP) --strip-unneeded libpthread-trace.so
 
 pthread-trace.o: pthread-trace.c
 

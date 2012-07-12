@@ -1,0 +1,15 @@
+[Desktop Entry]
+Version=1.0.0
+Encoding=UTF-8
+Name=ptrace-tools
+Type=Application
+GenericName=ptrace-tools
+Comment=pthread trace analyzer
+Icon=/usr/share/ptracetools/ptrace.png
+FilePattern=ptracegui.py
+Exec=/usr/share/ptracetools/ptracegui.py
+Terminal=false
+StartupNotify=false
+Categories=Application;Development
+GenericName[en_US]=ptrace-tools
+GenericName[en_GB]=ptrace-tools

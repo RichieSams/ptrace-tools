@@ -1,0 +1,13 @@
+Source: ptrace-tools
+Section: devel
+Priority: extra
+Maintainer: Ardavon Falls <ArdyFalls@gmail.com>
+Homepage: http://code.google.com/p/ptrace-tools/
+Package: ptrace-tools
+Architecture: amd64
+Version: 1.0.0
+Depends: python, python-qt4, build-essential
+Description: pthread tracing software
+ ptrace-tools allows users to trace the execution of threads of a processes. It
+ runs in userspace and does not require modificaitons to the kernel or the 
+ desired process.
