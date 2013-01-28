@@ -4,8 +4,13 @@ if [ $# -lt 1 ]; then
    echo "pthread-trace (c)2012 QVXLabs LLC all rights reserved"
    echo "syntax: pthread-trace <program to trace>"
 else
-   export LD_PRELOAD=libpthread-trace.so
-   $*
+   if [ "Darwin" == "`uname -s`" ]; then
+        export DYLD_INSERT_LIBRARIES=libpthread-trace.so
+        $*
+   else
+        export LD_PRELOAD=libpthread-trace.so
+        $*
+   fi
 fi
 	
  

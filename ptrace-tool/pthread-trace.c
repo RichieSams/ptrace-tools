@@ -10,6 +10,15 @@
 #include "log.h"
 /* -------- */
 #define TRACEFILE   "ptrace.log"
+
+#if __APPLE__
+    #define FUNC(name) _##name
+    #define ORIGINAL(name) name
+#else
+    #define FUNC(name) name
+    #define ORIGINAL(name) name##_std
+#endif
+
 /* -------- */
 typedef struct {
   void* (*m_threadFunc)(void*);
@@ -17,6 +26,8 @@ typedef struct {
 } pth_funcWrap;
 /* -------- */
 /* wrapping functions */
+#if __APPLE__
+#else
 static int (*pthread_create_std)(pthread_t*, const pthread_attr_t*, void*(*func)(void*), void*);
 static int (*pthread_mutex_init_std)(pthread_mutex_t*, const pthread_mutexattr_t*);
 static int (*pthread_mutex_destroy_std)(pthread_mutex_t*);
@@ -29,6 +40,7 @@ static int (*pthread_cond_signal_std)(pthread_cond_t*);
 static int (*pthread_cond_broadcast_std)(pthread_cond_t*);
 static int (*pthread_cond_wait_std)(pthread_cond_t*, pthread_mutex_t*);
 static int (*pthread_cond_timedwait_std)(pthread_cond_t*, pthread_mutex_t*, const struct timespec*);
+#endif
 /* -------- */
 static void* _threadFuncWrap(void*);
 static void _threadFuncEndTrap(void*);
@@ -38,6 +50,8 @@ pthreadTrace_init(void) {
   /* notify user of usage */
   printf("pthread-trace (c)2012 QVXLabs LLC all rights reserved\n");
   /* load std calls */
+#if __APPLE__
+#else
   pthread_create_std = dlsym(RTLD_NEXT, "pthread_create");
   pthread_mutex_init_std = dlsym(RTLD_NEXT, "pthread_mutex_init");
   pthread_mutex_destroy_std = dlsym(RTLD_NEXT, "pthread_mutex_destroy");
@@ -50,6 +64,7 @@ pthreadTrace_init(void) {
   pthread_cond_broadcast_std = dlsym(RTLD_NEXT, "pthread_cond_broadcast");
   pthread_cond_wait_std = dlsym(RTLD_NEXT, "pthread_cond_wait");
   pthread_cond_timedwait_std = dlsym(RTLD_NEXT, "pthread_cond_timedwait");
+#endif
   /* init engine */
   traceTime_init();
   log_init(TRACEFILE);
@@ -67,7 +82,7 @@ pthreadTrace_destroy(void) {
 }
 /* -------- */
 int 
-pthread_create(
+FUNC(pthread_create)(
 	       pthread_t* pThread, 
 	       const pthread_attr_t* pAttr, 
 	       void*(*func)(void*), 
@@ -78,29 +93,29 @@ pthread_create(
   pWrap->m_pCtx = pArg;
   /* log creation and create thread */
   log_pThreadCreate();
-  return pthread_create_std(pThread, pAttr, _threadFuncWrap, pWrap);
+  return ORIGINAL(pthread_create)(pThread, pAttr, _threadFuncWrap, pWrap);
 }
 /* -------- */
-int pthread_mutex_init(
+int FUNC(pthread_mutex_init)(
 		       pthread_mutex_t* pMtx, 
 		       const pthread_mutexattr_t* pAttr) {
-  return pthread_mutex_init_std(pMtx, pAttr);
+  return ORIGINAL(pthread_mutex_init)(pMtx, pAttr);
 }
 /* -------- */
-int pthread_mutex_destroy(pthread_mutex_t* pMtx) {
-  return pthread_mutex_destroy_std(pMtx);
+int FUNC(pthread_mutex_destroy)(pthread_mutex_t* pMtx) {
+  return ORIGINAL(pthread_mutex_destroy)(pMtx);
 }
 /* -------- */
-int pthread_mutex_lock(pthread_mutex_t* pMtx) {
+int FUNC(pthread_mutex_lock)(pthread_mutex_t* pMtx) {
   int retVal;
   log_pThreadLockEnter();
-  retVal = pthread_mutex_lock_std(pMtx);
+  retVal = ORIGINAL(pthread_mutex_lock)(pMtx);
   log_pThreadLockLeave();
   return retVal;
 }
 /* -------- */
-int pthread_mutex_trylock(pthread_mutex_t* pMtx) {
-  int retVal = pthread_mutex_trylock_std(pMtx);
+int FUNC(pthread_mutex_trylock)(pthread_mutex_t* pMtx) {
+  int retVal = ORIGINAL(pthread_mutex_trylock)(pMtx);
   if (!retVal) {
     log_pThreadLockEnter();
     log_pThreadLockLeave();
@@ -108,47 +123,47 @@ int pthread_mutex_trylock(pthread_mutex_t* pMtx) {
   return retVal;
 }
 /* -------- */
-int pthread_mutex_unlock(pthread_mutex_t* pMtx) {
+int FUNC(pthread_mutex_unlock)(pthread_mutex_t* pMtx) {
   log_pThreadUnlock();
-  return pthread_mutex_unlock_std(pMtx);
+  return ORIGINAL(pthread_mutex_unlock)(pMtx);
 }
 /* -------- */
-int pthread_cond_init(pthread_cond_t* pCnd, const pthread_condattr_t* pAttr) {
-  return pthread_cond_init_std(pCnd, pAttr);
+int FUNC(pthread_cond_init)(pthread_cond_t* pCnd, const pthread_condattr_t* pAttr) {
+  return ORIGINAL(pthread_cond_init)(pCnd, pAttr);
 }
 /* -------- */
-int pthread_cond_destroy(pthread_cond_t* pCnd) {
-  return pthread_cond_destroy_std(pCnd);
+int FUNC(pthread_cond_destroy)(pthread_cond_t* pCnd) {
+  return ORIGINAL(pthread_cond_destroy)(pCnd);
 }
 /* -------- */
-int pthread_cond_signal(pthread_cond_t* pCnd) {
+int FUNC(pthread_cond_signal)(pthread_cond_t* pCnd) {
   log_pThreadCondSignal();
-  return pthread_cond_signal_std(pCnd);
+  return ORIGINAL(pthread_cond_signal)(pCnd);
 }
 /* -------- */
-int pthread_cond_broadcast(pthread_cond_t* pCnd) {
+int FUNC(pthread_cond_broadcast)(pthread_cond_t* pCnd) {
   log_pThreadCondBroadcast();
-  return pthread_cond_broadcast_std(pCnd);
+  return ORIGINAL(pthread_cond_broadcast)(pCnd);
 }
 /* -------- */
-int pthread_cond_wait(pthread_cond_t* pCnd, pthread_mutex_t* pMtx) {
+int FUNC(pthread_cond_wait)(pthread_cond_t* pCnd, pthread_mutex_t* pMtx) {
   int retVal;
   log_pThreadCondWaitEnter();
   log_pThreadUnlock();
-  retVal = pthread_cond_wait_std(pCnd, pMtx);
+  retVal = ORIGINAL(pthread_cond_wait)(pCnd, pMtx);
   log_pThreadLockEnter();
   log_pThreadCondWaitLeave();
   return retVal;
 }
 /* -------- */
-int pthread_cond_timedwait(
+int FUNC(pthread_cond_timedwait)(
 			   pthread_cond_t* pCnd, 
 			   pthread_mutex_t* pMtx, 
 			   const struct timespec* pTnSpec) {
   int retVal;
   log_pThreadCondWaitEnter();
   log_pThreadUnlock();
-  retVal = pthread_cond_timedwait_std(pCnd, pMtx, pTnSpec);
+  retVal = ORIGINAL(pthread_cond_timedwait)(pCnd, pMtx, pTnSpec);
   log_pThreadLockEnter();
   if (ETIMEDOUT == retVal) 
     log_pThreadCondWaitTimeout();
@@ -177,3 +192,25 @@ static void
 _threadFuncEndTrap(void* pCtx) {
   log_pThreadEnd();
 }
+
+#ifdef __APPLE__
+  #define INTERPOSE(name) { (void *)FUNC(name), (void *)name }
+  typedef struct { void *new; void *old; } interpose;
+  __attribute__((used)) static const interpose interposers[] \
+    __attribute__((section("__DATA,__interpose"))) = {
+      INTERPOSE(pthread_create),
+      INTERPOSE(pthread_mutex_init),
+      INTERPOSE(pthread_mutex_destroy),
+      INTERPOSE(pthread_mutex_lock),
+      INTERPOSE(pthread_mutex_trylock),
+      INTERPOSE(pthread_mutex_unlock),
+      INTERPOSE(pthread_cond_init),
+      INTERPOSE(pthread_cond_destroy),
+      INTERPOSE(pthread_cond_signal),
+      INTERPOSE(pthread_cond_broadcast),
+      INTERPOSE(pthread_cond_wait),
+      INTERPOSE(pthread_cond_timedwait),
+
+  };
+#endif
+

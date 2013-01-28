@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include "log.h"
 #include "tracetime.h"
+#if __APPLE__
+#include <pthread.h>
+#endif
 #define CSTR(X) #X
 /* -------- */
 enum {
@@ -43,6 +46,7 @@ void
 log_destroy(void) {
   if (gTrace)
     fclose(gTrace);
+  gTrace = NULL;
 }
 /* -------- */
 void 
@@ -121,10 +125,19 @@ _logEvent(const char* pEvtName) {
 	  curTime.tv_sec,
 	  curTime.tv_nsec);  
   */
-  fprintf(gTrace,
+
+  if (NULL != gTrace)
+  {
+    fprintf(gTrace,
 	  "%s %ld %ld:%ld\n", 
-	  pEvtName, 
+      pEvtName, 
+#if __APPLE__
+      (long int)pthread_self(),
+#else
 	  syscall(__NR_gettid), 
+#endif
 	  curTime.tv_sec,
 	  curTime.tv_nsec);
+  }
+
 }
